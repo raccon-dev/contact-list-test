@@ -4,9 +4,7 @@
       <Contact :name="contact.name" :id="contact.id" :avatar="contact.avatar" />
          <hr class="line-medium">
     </li>
-   
   </ul>
-
 </template>
 
 <script>

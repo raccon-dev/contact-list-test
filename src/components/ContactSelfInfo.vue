@@ -16,13 +16,13 @@
           v-bind:readonly="isReadOnly(key)"
           class="line-input"
           type="text"
-          v-on:change="handleKeyInputChange"
+          v-on:change="handleCurrentKeyChange"
           v-bind:value="key"
         />
         <input
           class="line-input"
           type="text"
-          v-on:change="handleValueInputChange"
+          v-on:change="handleCurrentValueChange"
           v-bind:readonly="isReadOnly(key)"
           v-bind:value="value"
         />
@@ -48,8 +48,8 @@
       </li>
     </ul>
     <form class="form-new-line">
-      <input class="input-new-line" v-on:change="handleKeyChange" type="text" placeholder="Key" />
-      <input class="input-new-line" v-on:change="handleValueChange" type="text" placeholder="Value" />
+      <input class="input-new-line" v-model="addLineKey" type="text" placeholder="Key" />
+      <input class="input-new-line" v-model="addLineValue" type="text" placeholder="Value" />
       <button class="btn-line" v-on:click="handleAddLine" type="submit">
         <img class="btn-icon" src="./../assets/more.svg" alt />
       </button>
@@ -59,12 +59,150 @@
     </button>
 
     <router-link to="/">
-      <button class="btn-line btn-back" v-on:click="handlePageBack">
+      <button class="btn-line btn-back">
         <img class="btn-icon" src="./../assets/return.svg" alt />
       </button>
     </router-link>
   </div>
 </template>
+
+
+<script>
+export default {
+  name: "ContactSelfInfo",
+  data: function () {
+    return {
+      selectedLine: null,
+      selectedInputValue: null,
+      selectedInputKey: null,
+      addLineKey: null,
+      addLineValue: null,
+      currentUser: this.$store.getters.getContactById(this.$route.params.id),
+    };
+  },
+
+  methods: {
+    handleAddLine: function (e) {
+      e.preventDefault();
+      if (this.isEditMode()) {
+        return;
+      }
+      if (this.checkInputsForValid(this.addLineKey, this.addLineValue)) {
+        alert(
+          "Key and value must contain at least 4 characters and max 13 characters"
+        );
+        return;
+      }
+      this.$store.commit("contactAddNewLine", {
+        uid: this.currentUser.id,
+        newLine: [this.addLineKey, this.addLineValue],
+      });
+    },
+
+    handleEditLine: function (key, value) {
+      if (this.isEditMode()) {
+        return;
+      }
+
+      this.selectedInputKey = key;
+      this.selectedInputValue = value;
+      this.selectedLine = key;
+    },
+
+    handleSaveLine: function (oldKey, oldValue) {
+      if (
+        this.checkInputsForValid(this.selectedInputKey, this.selectedInputValue)
+      ) {
+        alert("Please type correct new Values");
+        return;
+      }
+      this.$store.commit("contactEditLine", {
+        uid: this.currentUser.id,
+        oldData: {
+          [oldKey]: oldValue,
+        },
+        newData: {
+          [this.selectedInputKey]: this.selectedInputValue,
+        },
+      });
+      this.clearSelectedLine();
+    },
+
+    handleCancelEdit: function () {
+      if (window.confirm("Are you sure? Cancel editing?")) {
+        this.clearSelectedLine();
+      }
+    },
+
+    handleRemoveLine: function (key) {
+      if (this.isEditMode()) {
+        return;
+      }
+      if (window.confirm(`Are you sure? Delete line of ${key}`)) {
+        this.$store.commit("contactRemoveLine", {
+          uid: this.currentUser.id,
+          key,
+        });
+      }
+    },
+    clearSelectedLine: function () {
+      this.selectedLine = null;
+      this.selectedInputValue = null;
+      this.selectedInputKey = null;
+    },
+    handleStepBack: function () {
+      if (this.isEditMode()) {
+        return;
+      }
+      this.$store.commit("stepBack");
+      this.currentUser = this.$store.getters.getContactById(
+        this.$route.params.id
+      );
+      this.$store.commit("clearEditingCache", {});
+    },
+    checkInputsForValid: function (inputKey, inputValue) {
+      if (
+        inputKey === null ||
+        inputValue === null ||
+        inputKey.length < 4 ||
+        inputValue.length < 4 ||
+        inputKey.length > 13 ||
+        inputValue.length > 13
+      ) {
+        return true;
+      }
+      return false;
+    },
+
+    checkInputStatus: function () {
+      if (this.inputStatus) {
+        return true;
+      }
+      return false;
+    },
+    handleCurrentKeyChange: function (e) {
+      this.selectedInputKey = e.target.value;
+    },
+    handleCurrentValueChange: function (e) {
+      this.selectedInputValue = e.target.value;
+    },
+    isEditMode: function () {
+      if (this.selectedLine !== null) {
+        return true;
+      }
+      return false;
+    },
+
+    isReadOnly: function (key) {
+      if (key === this.selectedLine) {
+        return false;
+      }
+      return true;
+    },
+  },
+};
+</script>
+
 
 <style>
 .self-contact-info {
@@ -144,146 +282,3 @@ li {
   outline: none;
 }
 </style>
-
-<script>
-export default {
-  name: "ContactSelfInfo",
-  data: function () {
-    return {
-      selectedLine: null,
-      autoFocusStatus: false,
-      inputValue: null,
-      inputKey: null,
-      lineKey: null,
-      lineValue: null,
-      currentUser: this.$store.getters.getContactById(this.$route.params.id),
-    };
-  },
-
-  methods: {
-    handlePageBack: function () {
-      console.log("asdasd");
-    },
-    handleStepBack: function () {
-      if (this.isEditMode()) {
-        return;
-      }
-      this.$store.commit("stepBack");
-      this.currentUser = this.$store.getters.getContactById(
-        this.$route.params.id
-      );
-      this.$store.commit("clearEditingCache", {});
-    },
-    handleAddLine: function (e) {
-      e.preventDefault();
-      if (this.isEditMode()) {
-        return;
-      }
-      if (
-        this.lineKey === null ||
-        this.lineKey.length < 4 ||
-        this.lineValue === null ||
-        this.lineValue.length < 4 ||
-        this.lineKey.length > 13 ||
-        this.lineValue.length > 13
-      ) {
-        alert(
-          "Key and value must contain at least 4 characters and max 13 characters"
-        );
-        return;
-      }
-      this.$store.commit("contactAddNewLine", {
-        uid: this.currentUser.id,
-        newLine: [this.lineKey, this.lineValue],
-      });
-    },
-    handleValueChange: function (e) {
-      this.lineValue = e.target.value;
-    },
-    handleKeyChange: function (e) {
-      this.lineKey = e.target.value;
-    },
-    handleRemoveLine: function (key) {
-      if (this.isEditMode()) {
-        return;
-      }
-      if (window.confirm(`Are you sure? Delete line of ${key}`)) {
-        this.$store.commit("contactRemoveLine", {
-          uid: this.currentUser.id,
-          key,
-        });
-      }
-    },
-    checkInputStatus: function () {
-      if (this.inputStatus) {
-        return true;
-      }
-      return false;
-    },
-    handleKeyInputChange: function (e) {
-      this.inputKey = e.target.value;
-    },
-    handleValueInputChange: function (e) {
-      this.inputValue = e.target.value;
-    },
-    isEditMode: function () {
-      if (this.selectedLine !== null) {
-        return true;
-      }
-      return false;
-    },
-
-    handleEditLine: function (key, value) {
-      if (this.isEditMode()) {
-        return;
-      }
-      this.inputKey = key;
-      this.inputValue = value;
-
-      this.selectedLine = key;
-    },
-    handleSaveLine: function (oldKey, oldValue) {
-      if (
-        this.inputKey === null ||
-        this.inputValue === null ||
-        this.inputKey.length < 4 ||
-        this.inputValue.length < 4 ||
-        this.inputKey.length > 13 ||
-        this.inputValue.length > 13
-      ) {
-        alert("Please type correct new Values");
-        return;
-      }
-      this.$store.commit("contactEditLine", {
-        uid: this.currentUser.id,
-        oldData: {
-          [oldKey]: oldValue,
-        },
-        newData: {
-          [this.inputKey]: this.inputValue,
-        },
-      });
-      console.log("old data", oldKey, oldValue);
-      console.log("new data", this.inputKey, this.inputValue);
-
-      this.selectedLine = null;
-      this.inputValue = null;
-      this.inputKey = null;
-    },
-    isReadOnly: function (key) {
-      if (key === this.selectedLine) {
-        return false;
-      }
-      return true;
-    },
-    handleCancelEdit: function () {
-      if (window.confirm("Are you sure? Cancel editing?")) {
-        this.selectedLine = null;
-        this.inputValue = null;
-        this.inputKey = null;
-      }
-    },
-  },
-};
-</script>
-

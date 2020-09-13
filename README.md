@@ -1,5 +1,6 @@
 # test-task-vue
-#  [Demo](https://demo-contact-list.netlify.app/#/)
+# Check [Demo](https://demo-contact-list.netlify.app/#/)
+
 ## Project setup
 ```
 npm install
